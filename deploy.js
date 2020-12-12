@@ -6,10 +6,11 @@ const yargs = require('yargs');
 const {hideBin} = require('yargs/helpers');
 const argv = yargs(hideBin(process.argv)).argv;
 
-let redisHost = "10.6.197.139";
+let redisHost = '10.6.197.139';
 let redisPort = 6379;
 let topic = undefined;
 let topicId =  undefined;
+let redisAccessVPC = 'redis-vcp';
 
 function log(statement){
     console.log(`[DEPLOY] ${statement}.`);
@@ -20,7 +21,10 @@ function validations(){
         redisHost = argv['redis-host'];
     }
     if (argv['redis-port'] !== undefined && argv['redis-port']!== true && argv['redis-port']!==''){
-        redisHost = argv['redis-host'];
+        redisHost = argv['redis-port'];
+    }
+    if (argv['vpc-connector']!== undefined && argv['vpc-connector']!== true && argv['vpc-connector']!==''){
+        redisAccessVPC = argv['vpc-connector'];
     }
     if (argv.topic !== undefined && argv.topic!== true && argv.topic !== ''){
         topic = argv.topic;
@@ -42,13 +46,13 @@ async function deploy(functionName, type){
         //Type 1= sub, 2= pub, 3= getter
         switch (type) {
             case 1:
-                output = await exec(`gcloud functions deploy ${functionName} --runtime nodejs12 --trigger-topic ${topicId} --region us-east1 --vpc-connector redis-vcp --set-env-vars REDIS_HOST=${redisHost} --set-env-vars REDIS_PORT=${redisPort} --set-env-vars FUNCTION_NAME=${functionName}`);
+                output = await exec(`gcloud functions deploy ${functionName} --runtime nodejs12 --trigger-topic ${topicId} --region us-east1 --vpc-connector ${redisAccessVPC} --set-env-vars REDIS_HOST=${redisHost} --set-env-vars REDIS_PORT=${redisPort} --set-env-vars FUNCTION_NAME=${functionName}`);
                 break;
             case 2:
-                output = await exec(`gcloud functions deploy ${functionName} --runtime nodejs12 --trigger-http --allow-unauthenticated --region us-east1 --vpc-connector redis-vcp --set-env-vars TOPIC=${topic} --set-env-vars FUNCTION_NAME=${functionName}`);
+                output = await exec(`gcloud functions deploy ${functionName} --runtime nodejs12 --trigger-http --allow-unauthenticated --region us-east1 --vpc-connector ${redisAccessVPC} --set-env-vars TOPIC=${topic} --set-env-vars FUNCTION_NAME=${functionName}`);
                 break;
             case 3:
-                output = await exec(`gcloud functions deploy ${functionName} --runtime nodejs12 --trigger-http --allow-unauthenticated --region us-east1 --vpc-connector redis-vcp --set-env-vars REDIS_HOST=${redisHost} --set-env-vars REDIS_PORT=${redisPort} --set-env-vars FUNCTION_NAME=${functionName}`);
+                output = await exec(`gcloud functions deploy ${functionName} --runtime nodejs12 --trigger-http --allow-unauthenticated --region us-east1 --vpc-connector ${redisAccessVPC} --set-env-vars REDIS_HOST=${redisHost} --set-env-vars REDIS_PORT=${redisPort} --set-env-vars FUNCTION_NAME=${functionName}`);
                 break;
             default:
                 throw new Error("Function type not recognized.")
